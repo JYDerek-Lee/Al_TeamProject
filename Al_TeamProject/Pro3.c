@@ -5,26 +5,27 @@
 #include <time.h>
 #include <windows.h>
 
-#define USER 1;
-#define AI 2;
+#define USER 1
+#define AI 2
+#define ROOM 3
 
 // 선공 선방 선택하는 룰 만들기
-char g_stone[5][5] = {0};
-int g_save[128] = {0};
+char g_stone[5][5] = { 0 };
+int g_save[128] = { 0 };
 int g_AIPoint = 0;
 int g_USERPoint = 0;
 int recentPlayer = 0;
-int infoCnt = 0;
+int g_stonPos = 0;
 int saveCnt = 0;
 
-void display(char *p_message);
+void display();
 void addStone();
-void deleteStone();
+void updateStone();
 void makePlatform();
 void robot();
-int findStone(int g_stoneNum, int x, int y, int notGo, int *locationInfo);
-int findHouse(int *location);
-int isFar(int lastX, int lastY, int lastX_2nd, int lastY_2nd);
+int stonePos();
+int findRoom();
+int isFar();
 
 // 메인 ============================================================================
 // ===============================================================================
@@ -36,29 +37,24 @@ void main() {
 			g_stone[i][k] = 0;
 		}
 	}
-	makePlatform();
 
 	while (1) {
+		makePlatform();
 		addStone();
-		delStone();
+		updateStone();
+	
 		makePlatform();
-
 		robot();
-		makePlatform();
-		delStone();
-		makePlatform();
-	}
-	for (i = 0; i<5; i++) {
-		for (k = 0; k<5; k++) {
-			g_stone[i][k] = 0;
-		}
-	}
 
+		makePlatform();
+		updateStone();
+		makePlatform();
+	}
 }
 
 
 void display(char *p_message) {
-	fputs("\n===================================\n",stderr);
+	fputs("===================================\n", stderr);
 	fputs(p_message, stderr);
 	fputc('\n', stderr);
 	fputs("===================================\n", stderr);
@@ -94,81 +90,55 @@ void addStone() {
 		}
 		else continue;
 	}
-	//}
-
-	//if (i >= 50) {
-	//	display("최대 턴 초과로 인한 종료");
-	//	exit(1);
-	//}
 }
 
 
-void deleteStone() {
-	int i, k, isHouse, round, del, tmp;
-	int locationInfo[25] = { -1 };
-
+void updateStone() {
 	int com = AI;
 	int user = USER;
+	int i, j, k, isRoom, round, del, data;
+	int roomData[25] = { -1 };
 
-	for (round = 1; round <= 2; round++) { // 돌 둔 사람을 먼저 처리해주고 나머지를 처리해주므로 총 2번 처리해야함 
+	for (round = 1; round <= 2; round++) {  
 		for (i = 0; i<5; i++) {
 			for (k = 0; k<5; k++) {
+				if (g_stone[i][k] == 0) continue; 
+				if (g_stone[i][k] != recentPlayer) continue; 
+				if (g_stone[i][k] != 0) stonePos(g_stone[i][k], i, k, 0, roomData); 
 
-				if (g_stone[i][k] == 0) continue; // 빈칸이 선택되었다면 계산할 가치가 없다.
-				if (g_stone[i][k] != recentPlayer) continue; // 지금 돌을 막 둔사람의 돌을 먼저 처리해줌
+				isRoom = findRoom(roomData); // 그곳이 집인지 판단
 
-
-				if (g_stone[i][k] != 0) {
-
-					findStone(g_stone[i][k], i, k, 0, locationInfo); // 해당 위치의 돌색과 같으면서 연결된 돌들의 위치를 배열에 저장해줌.
-				}
-
-				/*
-				for(tmp=0; tmp<25; tmp++)
-				printf("[%d]\n", locationInfo[tmp]);
-				*/
-
-				isHouse = findHouse(locationInfo); // 그곳이 집인지 판단
-				//printf("********************* %d (1집발견 0 집못발견) ***************\n", isHouse);
-
-				printf("\n\n");
-
-				if (isHouse == 1) { // 집인경우
-
+				if (isRoom == ROOM) { // 집인경우
 					for (del = 0; del<25; del++) { // 해당 리스트에 있는 돌들을 삭제
 
-						if (locationInfo[del] == -1) continue;
+						if (roomData[del] == -1) continue;
+						data = g_stone[roomData[del] / 10][roomData[del] % 10];
+						switch (data) {
+						case 1:
+							g_AIPoint++; break;
+						case 2:
+							g_USERPoint++; break;
+						}
+						//if (g_stone[roomData[del] / 10][roomData[del] % 10] == 1)
+						//	g_AIPoint++;
 
-						if (g_stone[locationInfo[del] / 10][locationInfo[del] % 10] == 1)
-							g_AIPoint++;
-							//comGet++;
-						if (g_stone[locationInfo[del] / 10][locationInfo[del] % 10] == 2)
-							g_USERPoint++;
-							//userGet++;
+						//if (g_stone[roomData[del] / 10][roomData[del] % 10] == 2)
+						//	g_USERPoint++;
 
-						g_stone[locationInfo[del] / 10][locationInfo[del] % 10] = 0;
-						g_save[saveCnt++] = 1000 + (locationInfo[del] / 10) * 100 + (locationInfo[del] % 10) * 10 + 0;
-
-
-
+						g_stone[roomData[del] / 10][roomData[del] % 10] = 0;
+						g_save[saveCnt++] = 1000 + (roomData[del] / 10) * 100 + (roomData[del] % 10) * 10 + 0;
 					}
-
 				}
 
-
-
-				for (tmp = 0; tmp<25; tmp++) // 다음 작업을 위한 초기화
-					locationInfo[tmp] = -1;
-				infoCnt = 0;
+				for (j = 0; j<25; j++) roomData[j] = -1;
+				g_stonPos = 0;
 
 			}
 		}
 
-		if (recentPlayer == user)
-			recentPlayer = com;
-		else
-			recentPlayer = user;
-
+		recentPlayer = (recentPlayer == user) ? com : user;
+		//if (recentPlayer == user) recentPlayer = com;
+		//else recentPlayer = user;
 	}
 }
 
@@ -179,7 +149,6 @@ void makePlatform() {
 	int i = 0, j = 0, k = 0;
 
 	system("cls");
-	display("\t  <종료방법>\n\tX : 9 Y :9를 입력");
 	fprintf(stderr, "\t    <점수>\n\t당신 : %d AI : %d", g_USERPoint, g_AIPoint);
 	fputs("\n===================================\n\n", stderr);
 
@@ -191,48 +160,35 @@ void makePlatform() {
 			break;
 		}
 		if (i % 2 == 1) printf("┬");
-		else {
-			printf("─");
-		}
-
+		else printf("─");
 	}
-
 	printf("\n"); printf("↓│");
-	for (k = 0; k<platformWidth + 3; k++) {
-		if (k % 2 == 1)
-			printf("│");
-		else
-			printf("  ");
-	}
 
+	for (k = 0; k<platformWidth + 3; k++) {
+		if (k % 2 == 1) printf("│");
+		else printf("  ");
+	}
 	printf("\n");
-	for (i = 0; i<platformHeight/2; i++) {
+
+	for (i = 0; i<platformHeight / 2; i++) {
 		printf(" %d├", i);
-		for (j = 0; j<platformHeight/2; j++) {
+		for (j = 0; j<platformHeight / 2; j++) {
 			printf("─");
 
-			if (g_stone[j][i] == 0) {
-				printf("┼");
-			}
-			else if (g_stone[j][i] == 1) {
-				printf("○");
-			}
-			else {
-				printf("●");
-			}
+			if (g_stone[j][i] == 0) printf("┼");
+			else if (g_stone[j][i] == 1) printf("○");
+			else printf("●");
 		}
 		printf("─┤\n");
 
 		printf("  │");
 		for (k = 0; k<platformWidth + 3; k++) {
-			if (k % 2 == 1)
-				printf("│");
-			else
-				printf("  ");
+			if (k % 2 == 1) printf("│");
+			else printf("  ");
 		}
 		printf("\n");
-
 	}
+
 	for (i = 0; i<platformWidth + 2; i++) {
 		if (i == 0) printf("  └");
 		if (i == platformWidth + 1) {
@@ -240,13 +196,85 @@ void makePlatform() {
 			break;
 		}
 		if (i % 2 == 1) printf("┴");
-		else {
-			printf("─");
-		}
+		else printf("─");
 	}
 	printf("\n");
+	display("\t  <종료방법>\n     (X : 9 Y :9)를 입력 하세요");
 }
 
+
+int stonePos(int p_stoneNum, int x, int y, int notGo, int *roomData) {
+
+	// p_stoneNum : 돌색(1 or 2)
+	// x, y : 좌표
+	// notGo : 재귀 이용했으므로 갔던길을 되돌아 오지 않도록 하는 변수.
+	//    4 
+	//  1   3  으로 지정하여 처리함
+	//    2
+	// *location : 갔던길을 저장하는 변수
+
+	roomData[g_stonPos] = x * 10 + y;
+
+	if (x - 1 >= 0 && notGo != 1) {
+		if (g_stone[x - 1][y] == p_stoneNum) stonePos(g_stone[x - 1][y], x - 1, y, 3, roomData);
+	}
+
+	if (y + 1 < 5 && notGo != 2) {
+		if (g_stone[x][y + 1] == p_stoneNum) stonePos(g_stone[x][y + 1], x, y + 1, 4, roomData);
+	}
+
+	if (x + 1 < 5 && notGo != 3) {
+		if (g_stone[x + 1][y] == p_stoneNum) stonePos(g_stone[x + 1][y], x + 1, y, 1, roomData);
+	}
+
+	if (y - 1 >= 0 && notGo != 4) {
+		if (g_stone[x][y - 1] == p_stoneNum) stonePos(g_stone[x][y - 1], x, y - 1, 2, roomData);
+	}
+	return 0;
+
+}
+
+
+int findRoom(int *p_roomPos) {
+	int i;
+	int x = -1, y = -1;
+	int playerA, playerB;
+
+	for (i = 0; i<25; i++) {
+		if (p_roomPos[i] == -1)  continue;
+
+		x = p_roomPos[i] / 10;
+		y = p_roomPos[i] % 10;
+		playerA = g_stone[x][y];
+
+		playerB = (playerA == 1) ? 2 : 1;
+		//if (myType == 1) yourType = 2;
+		//if (myType == 2) yourType = 1;
+
+		if (g_stone[x - 1][y] == 0 && x - 1 >= 0) // 4방향중 0(=빈칸)이 존재한다면 그것은 집이 아니다.
+			return 0;
+		if (g_stone[x + 1][y] == 0 && x + 1 < 5)
+			return 0;
+		if (g_stone[x][y - 1] == 0 && y - 1 >= 0)
+			return 0;
+		if (g_stone[x][y + 1] == 0 && y + 1 < 5)
+			return 0;
+
+	}
+	return ROOM;
+}
+
+
+int isFar(int lastX, int lastY, int lastX_2nd, int lastY_2nd) {
+
+	if (lastX - 1 != lastX_2nd || lastX + 1 != lastX_2nd || lastY - 1 != lastY_2nd || lastY + 1 != lastY_2nd) { // 사람이 두 돌을 인접하게 두지 않았다면
+		return 1; // 멀리 둠
+	}
+	else
+		return 0; // 가까이 둠
+
+
+}
 
 void robot() {
 	int lastX = (g_save[saveCnt - 1] / 100) % 10; // 1052 : x, y, type(0:빈칸,1:흑,2:백) 순서 1000은 더미
@@ -414,88 +442,5 @@ void robot() {
 			}
 		}
 	}
-
-}
-
-
-int findStone(int g_stoneNum, int x, int y, int notGo, int *locationInfo) {
-
-	// g_stoneNum : 돌색(1 or 2)
-	// x, y : 좌표
-	// notGo : 재귀 이용했으므로 갔던길을 되돌아 오지 않도록 하는 변수.
-	//    4 
-	//  1   3  으로 지정하여 처리함
-	//    2
-	// *location : 갔던길을 저장하는 변수
-
-	locationInfo[infoCnt++] = x * 10 + y;
-
-	if (x - 1 >= 0 && notGo != 1) {
-		if (g_stone[x - 1][y] == g_stoneNum) {
-			findStone(g_stone[x - 1][y], x - 1, y, 3, locationInfo);
-		}
-	}
-
-	if (y + 1 < 5 && notGo != 2) {
-		if (g_stone[x][y + 1] == g_stoneNum) {
-			findStone(g_stone[x][y + 1], x, y + 1, 4, locationInfo);
-		}
-	}
-
-	if (x + 1 < 5 && notGo != 3) {
-		if (g_stone[x + 1][y] == g_stoneNum) {
-			findStone(g_stone[x + 1][y], x + 1, y, 1, locationInfo);
-		}
-	}
-
-	if (y - 1 >= 0 && notGo != 4) {
-		if (g_stone[x][y - 1] == g_stoneNum) {
-			findStone(g_stone[x][y - 1], x, y - 1, 2, locationInfo);
-		}
-	}
-	return 0;
-
-}
-
-
-int findHouse(int *location) {
-	int i;
-	int tmpX = -1, tmpY = -1;
-	int myType, yourType;
-
-	for (i = 0; i<25; i++) {
-
-		if (location[i] == -1)  // 배열의 끝이면 다음거 진행
-			continue;
-
-		tmpX = location[i] / 10;
-		tmpY = location[i] % 10;
-		myType = g_stone[tmpX][tmpY];
-		if (myType == 1) yourType = 2;
-		if (myType == 2) yourType = 1;
-
-		if (g_stone[tmpX - 1][tmpY] == 0 && tmpX - 1 >= 0) // 4방향중 0(=빈칸)이 존재한다면 그것은 집이 아니다.
-			return 0;
-		if (g_stone[tmpX + 1][tmpY] == 0 && tmpX + 1 < 5)
-			return 0;
-		if (g_stone[tmpX][tmpY - 1] == 0 && tmpY - 1 >= 0)
-			return 0;
-		if (g_stone[tmpX][tmpY + 1] == 0 && tmpY + 1 < 5)
-			return 0;
-
-	}
-	return 1; // 집인경우는 1을 리턴
-
-}
-
-
-int isFar(int lastX, int lastY, int lastX_2nd, int lastY_2nd) {
-
-	if (lastX - 1 != lastX_2nd || lastX + 1 != lastX_2nd || lastY - 1 != lastY_2nd || lastY + 1 != lastY_2nd) { // 사람이 두 돌을 인접하게 두지 않았다면
-		return 1; // 멀리 둠
-	}
-	else
-		return 0; // 가까이 둠
-
 
 }
