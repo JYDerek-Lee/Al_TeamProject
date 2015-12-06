@@ -11,8 +11,9 @@
 #define NOROOM 4
 #define FAR 5
 #define NOFAR 6
+#define END 7
 
-char g_stone[5][5] = { 0 };
+char g_stone[7][7] = { 0 };
 int g_save[128] = { 0 };
 int g_AIPoint = 0;
 int g_USERPoint = 0;
@@ -21,49 +22,75 @@ int g_stonPos = 0;
 int g_saveNum = 0;
 
 void display();
-void addStone();
+int addStone();
 void updateStone();
 void makePlatform();
 void aiPlayer();
+void feedBack();
 int stonePos();
 int findRoom();
 
 // 메인 ==============================================================
 // =================================================================
 void main() {
-	int i = 0, k = 0;
-
-	for (i = 0; i<5; i++) {
-		for (k = 0; k<5; k++) {
-			g_stone[i][k] = 0;
-		}
-	}
+	int i = 0, k = 0, select = 0;
 
 	while (1) {
-		makePlatform();
-		addStone();
-		updateStone();
-	
-		makePlatform();
-		aiPlayer();
-		updateStone();
+		system("cls");
+		display("\t1. 바둑게임 시작");
+		display("\t2. 복기 시작");
+		display("\t3. 시스템 종료");
 
-		makePlatform();
+		fprintf(stderr, "당신의 선택은? : ");
+		scanf("%d", &select);
+		
+		switch (select) {
+		case 1:
+			for (i = 0; i<7; i++) {
+				for (k = 0; k<7; k++) {
+					g_stone[i][k] = 0;
+				}
+			}
+			while (1) {
+				makePlatform();
+				if (addStone() == END) break;
+				updateStone();
+
+				makePlatform();
+				aiPlayer();
+				updateStone();
+
+				makePlatform();
+			}
+			break;
+		case 2:
+			for (i = 0; i<7; i++) {
+				for (k = 0; k<7; k++) {
+					g_stone[i][k] = 0;
+				}
+			}
+			feedBack();
+			//복기 옵션
+			break;
+		case 3:
+			exit(1);
+			break;
+		}
 	}
+	
 }
 
 
 void display(char *p_message) {
-	fputs("===================================\n", stderr);
+	fputs("===================================================\n", stderr);
 	fputs(p_message, stderr);
 	fputc('\n', stderr);
-	fputs("===================================\n", stderr);
+	fputs("===================================================\n", stderr);
 }
 
 
-void addStone() {
-	int x = -1;
-	int y = -1;
+int addStone() {
+	int x = -1, y = -1;
 	g_recentPlayer = USER;
 
 	while (1) {
@@ -71,18 +98,18 @@ void addStone() {
 		scanf("%d", &x);
 		printf(" Y좌표를 입력하세요 : ");
 		scanf("%d", &y);
-		y = 4 - y;
 
-		if (x == 6 && y == 6) {
+		if (x == 9 && y == 9) {
 			display("사용자가 종료를 선택했습니다.");
-			exit(1);
+			return END;
 		}
 
+		y = 6 - y;
 		if (g_stone[x][y] == 0) {
-			if (x >= 0 && x<5 && y >= 0 && y<5) {
+			if (x >= 0 && x<7 && y >= 0 && y<7) {
 				g_stone[x][y] = 1;
 				g_save[g_saveNum++] = 1000 + x * 100 + y * 10 + 1;
-				break;
+				return 0;
 			}
 		}
 		else continue;
@@ -94,18 +121,18 @@ void updateStone() {
 	int com = AI;
 	int user = USER;
 	int i = 0, j = 0, k = 0, round, del, data;
-	int roomData[25] = { -1 };
+	int roomData[49] = { -1 };
 
 	for (round = 1; round <= 2; round++) {  
-		for (i = 0; i<5; i++) {
-			for (k = 0; k<5; k++) {
+		for (i = 0; i<7; i++) {
+			for (k = 0; k<7; k++) {
 				if (g_stone[i][k] == 0) continue; 
 				if (g_stone[i][k] != g_recentPlayer) continue; 
 				if (g_stone[i][k] != 0) stonePos(g_stone[i][k], i, k, roomData, 0); 
 
 				//isRoom = findRoom(roomData); // 그곳이 집인지 판단
 				if (findRoom(roomData) == ROOM) { // 집인경우
-					for (del = 0; del<25; del++) { // 해당 리스트에 있는 돌들을 삭제
+					for (del = 0; del<49; del++) { // 해당 리스트에 있는 돌들을 삭제
 						if (roomData[del] == -1) continue;
 						data = g_stone[roomData[del] / 10][roomData[del] % 10];
 						switch (data) {
@@ -118,7 +145,7 @@ void updateStone() {
 						g_save[g_saveNum++] = 1000 + (roomData[del] / 10) * 100 + (roomData[del] % 10) * 10 + 0;
 					}
 				}
-				for (j = 0; j<25; j++) roomData[j] = -1;
+				for (j = 0; j<49; j++) roomData[j] = -1;
 				g_stonPos = 0;
 			}
 		}
@@ -129,14 +156,14 @@ void updateStone() {
 
 void makePlatform() {
 	int i = 0, j = 0, k = 0;
-	int platformWidth = 10;
-	int platformHeight = 10;
+	int platformWidth = 14;
+	int platformHeight = 14;
 
 	system("cls");
-	fprintf(stderr, "\t    <점수>\n\t당신 : %d AI : %d", g_USERPoint, g_AIPoint);
-	fputs("\n===================================\n\n", stderr);
+	fprintf(stderr, "\t<점수> 당신 : %d AI : %d", g_USERPoint, g_AIPoint);
+	fputs("\n===================================================\n", stderr);
 
-	printf(" X → 0   1   2   3   4\n");
+	printf(" X → 0   1   2    3   4   5   6\n");
 	for (i = 0; i<platformWidth + 2; i++) {
 		if (i == 0) printf(" Y┌");
 		if (i == platformWidth + 1) {
@@ -156,7 +183,7 @@ void makePlatform() {
 
 	for (i = 0; i<platformHeight / 2; i++) {
 	//for (i = platformHeight / 2-1; i>=0; i--) {
-		printf(" %d├", 4 - i);
+		printf(" %d├", 6 - i);
 		for (j = 0; j<platformHeight / 2; j++) {
 			printf("─");
 
@@ -184,7 +211,7 @@ void makePlatform() {
 		else printf("─");
 	}
 	printf("\n");
-	display("\t  <종료방법>\n     (X : 9 Y :9)를 입력 하세요");
+	display("\t<종료방법> (X : 9 Y :9)를 입력 하세요");
 }
 
 
@@ -204,11 +231,11 @@ int stonePos(int p_stoneNum, int x, int y, int *roomData, int checkRoot) {
 		if (g_stone[x - 1][y] == p_stoneNum) stonePos(g_stone[x - 1][y], x - 1, y, roomData, 3);
 	}
 
-	if (y + 1 < 5 && checkRoot != 2) {
+	if (y + 1 < 7 && checkRoot != 2) {
 		if (g_stone[x][y + 1] == p_stoneNum) stonePos(g_stone[x][y + 1], x, y + 1, roomData, 4);
 	}
 
-	if (x + 1 < 5 && checkRoot != 3) {
+	if (x + 1 < 7 && checkRoot != 3) {
 		if (g_stone[x + 1][y] == p_stoneNum) stonePos(g_stone[x + 1][y], x + 1, y, roomData, 1);
 	}
 
@@ -224,7 +251,7 @@ int findRoom(int *p_roomPos) {
 	int i = 0, x = -1, y = -1;
 	int playerA, playerB;
 
-	for (i = 0; i<25; i++) {
+	for (i = 0; i<49; i++) {
 		if (p_roomPos[i] == -1)  continue;
 
 		x = p_roomPos[i] / 10;
@@ -288,7 +315,7 @@ void aiPlayer() {
 			}
 		}
 		
-		if (recentX + 1 <= 4) {
+		if (recentX + 1 <= 7) {
 			if (g_stone[recentX + 1][recentY] == 0) {
 				g_stone[recentX + 1][recentY] = 2;
 				g_save[g_saveNum++] = 1000 + (recentX + 1) * 100 + (recentY)* 10 + 2;
@@ -408,7 +435,7 @@ void aiPlayer() {
 	// 이도저도 아닌 경우, 랜덤한, 빈칸의, 새로운 위치에 돌을 둔다.
 	srand(seed);
 
-	for (i = 0; i<25; i++) {
+	for (i = 0; i<49; i++) {
 		ranX = rand() % 5;
 		ranY = rand() % 5;
 
@@ -419,6 +446,28 @@ void aiPlayer() {
 				return;
 			}
 		}
+	}
+
+}
+
+
+void feedBack() {
+	int select = 0;
+	int x = 0, y = 0, i = 0;
+	
+	while (select != 2) {
+		while (g_save[i] > 0) {
+			x = (g_save[i] / 100) % 10;
+			y = (g_save[i] / 10) % 10;
+			g_stone[x][y] = g_save[i] % 10;
+			
+			makePlatform();
+			Sleep(1000);
+			i++;
+		}
+		display("1. 한번더 본다.\t2.그만 본다");
+		fprintf(stderr, "당신의 선택은? : ");
+		scanf("%d", &select);
 	}
 
 }
