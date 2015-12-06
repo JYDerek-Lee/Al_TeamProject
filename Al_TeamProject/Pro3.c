@@ -12,6 +12,7 @@
 #define FAR 5
 #define NOFAR 6
 #define END 7
+#define YES 10
 
 char g_stone[7][7] = { 0 };
 int g_save[128] = { 0 };
@@ -91,6 +92,7 @@ void display(char *p_message) {
 
 int addStone() {
 	int x = -1, y = -1;
+	static int frist = YES;
 	g_recentPlayer = USER;
 
 	while (1) {
@@ -104,6 +106,11 @@ int addStone() {
 			return END;
 		}
 
+		if (frist == YES) {
+			if (x == 3 && y == 3) continue;
+		}
+
+		frist = 0;
 		y = 6 - y;
 		if (g_stone[x][y] == 0) {
 			if (x >= 0 && x<7 && y >= 0 && y<7) {
@@ -211,7 +218,7 @@ void makePlatform() {
 		else printf("─");
 	}
 	printf("\n");
-	display("\t<종료방법> (X : 9 Y :9)를 입력 하세요");
+	display("\t<종료방법> (9, 9)를 입력 하세요\n\t<게임룰> 첫수에 (3,3)은 불가능 합니다.");
 }
 
 
