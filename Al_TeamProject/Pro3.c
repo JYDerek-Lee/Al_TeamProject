@@ -13,6 +13,7 @@
 #define NOFAR 6
 #define END 7
 #define YES 10
+#define NO 11
 
 char g_stone[7][7] = { 0 };
 int g_save[128] = { 0 };
@@ -107,10 +108,12 @@ int addStone() {
 		}
 
 		if (frist == YES) {
-			if (x == 3 && y == 3) continue;
+			if (x != 0 && x != 6) continue;
+			else if (y != 0 && y != 6) continue;
 		}
+		frist = NO;
+		
 
-		frist = 0;
 		y = 6 - y;
 		if (g_stone[x][y] == 0) {
 			if (x >= 0 && x<7 && y >= 0 && y<7) {
@@ -167,7 +170,7 @@ void makePlatform() {
 	int platformHeight = 14;
 
 	system("cls");
-	fprintf(stderr, "\t<점수> 당신 : %d AI : %d", g_USERPoint, g_AIPoint);
+	fprintf(stderr, "\n\t<점수> 당신 : %d AI : %d", g_USERPoint, g_AIPoint);
 	fputs("\n===================================================\n", stderr);
 
 	printf(" X → 0   1   2    3   4   5   6\n");
