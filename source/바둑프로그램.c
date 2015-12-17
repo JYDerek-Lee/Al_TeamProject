@@ -97,10 +97,10 @@ int addStone() {
 		printf(" ¡Ø XÁÂÇ¥,YÁÂÇ¥ : ");
 		scanf("%d%d", &x, &y);
 
-		y = 4 - y;
 		if(x == 6 && y == 6){
 			return -1;
 		}
+		y = 4 - y;
 		if(firstStone == 1) {
 			if(x==2 && y==2) {
 				continue;
