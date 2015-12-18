@@ -72,7 +72,6 @@ void main() {
 				}
 			}
 			feedBack();
-			//복기 옵션
 			break;
 		case 3:
 			exit(1);
@@ -92,7 +91,8 @@ void display(char *p_message) {
 
 
 int addStone() {
-	int x = -1, y = -1;
+	int x = -1, y = -1, i = 0;
+	static int backcount = 0;
 	static int frist = YES;
 	g_recentPlayer = USER;
 
@@ -113,7 +113,23 @@ int addStone() {
 		}
 		frist = NO;
 		
+		if (x == 8 && y == 8) {
+			if (backcount == 2) continue;
+			else{
+				for (i = 0; i < 2; i++) {
+					x = (g_save[--g_saveNum] / 100) % 10;
+					y = (g_save[g_saveNum] / 10) % 10;
+					g_stone[x][y] = 0;
+					g_save[g_saveNum] = 0;
+				}
+				backcount++;
+				updateStone();
+				makePlatform();
+				continue;
+			}
+		}
 
+		backcount = 0;
 		y = 6 - y;
 		if (g_stone[x][y] == 0) {
 			if (x >= 0 && x<7 && y >= 0 && y<7) {
@@ -221,7 +237,7 @@ void makePlatform() {
 		else printf("─");
 	}
 	printf("\n");
-	display("\t<종료방법> (9, 9)를 입력 하세요\n\t<게임룰> 첫수에 (3,3)은 불가능 합니다.");
+	display("\t<종료방법> (9, 9)를 입력 하세요.\n\t<무르기> (8, 8)을 입력 하세요.\n\t<게임룰> 첫수에 가장자리만 가능합니다.");
 }
 
 
@@ -457,15 +473,19 @@ void aiPlayer() {
 			}
 		}
 	}
-
 }
 
 
 void feedBack() {
 	int select = 0;
-	int x = 0, y = 0, i = 0;
+	int x = 0, y = 0, i = 0, k = 0, j = 0;
 	
 	while (select != 2) {
+		for (j = 0; j<7; j++) {
+			for (k = 0; k<7; k++) {
+				g_stone[j][k] = 0;
+			}
+		}
 		while (g_save[i] > 0) {
 			x = (g_save[i] / 100) % 10;
 			y = (g_save[i] / 10) % 10;
